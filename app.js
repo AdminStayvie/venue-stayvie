@@ -1,7 +1,7 @@
 // app.js
 document.addEventListener('DOMContentLoaded', () => {
     // !!! PENTING: Ganti dengan URL Web App dari Google Apps Script Anda !!!
-    const SCRIPT_URL = 'URL_APPS_SCRIPT_ANDA_DI_SINI';
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyUmuettz20ydDbQaCm4csTgSwxuWl5Se8j0rtC1xsj39zmCRILdLcj3zJKIVlIzq2O/exec';
 
     const portfolioGrid = document.getElementById('portfolio-grid');
     const loader = document.getElementById('loader');
