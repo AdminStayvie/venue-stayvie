@@ -1,34 +1,614 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Portfolio</title>
-    
-    <!-- Memanggil Google Fonts -->
+    <title>Dashboard Monitoring Reservasi</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+        .loader { border: 8px solid #e5e7eb; border-top: 8px solid #3b82f6; border-radius: 50%; width: 60px; height: 60px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .tab-button.active { border-bottom-color: #3b82f6; color: #3b82f6; font-weight: 600; }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+        
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 50;
+        }
+        .modal-content {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 0.75rem;
+            max-width: 90%;
+            width: 500px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+        #modal-body {
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+    </style>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
-    
-    <!-- Memanggil file CSS eksternal -->
-    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
-<body>
+<body class="bg-gray-100 text-gray-800">
 
-    <div class="container">
-        <div class="header">
-            <h1>My Awesome Portfolio</h1>
-            <p>Projects from Google Sheets</p>
+    <div class="container mx-auto p-4 md:p-6">
+        <header class="mb-6">
+            <h1 class="text-3xl font-bold text-gray-900">Dashboard Monitoring Reservasi Venue</h1>
+            <p class="text-gray-600">Analisis kinerja dan ketersediaan venue secara real-time.</p>
+        </header>
+
+        <div class="border-b border-gray-200 mb-6">
+            <nav class="-mb-px flex space-x-6" aria-label="Tabs">
+                <button id="tab-dashboard" onclick="switchTab('dashboard')" class="tab-button active whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">Dashboard Utama</button>
+                <button id="tab-availability" onclick="switchTab('availability')" class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">Cek Ketersediaan Venue</button>
+            </nav>
         </div>
 
-        <!-- Data dari Google Sheet akan ditampilkan di sini -->
-        <div id="portfolio-grid">
-            <!-- Loader akan ditampilkan saat data sedang dimuat -->
-            <div id="loader">Loading projects...</div>
+        <!-- Konten Tab Dashboard -->
+        <div id="dashboard-tab-content">
+            <div id="loader-container" class="flex justify-center items-center h-64"><div class="loader"></div><p class="ml-4 text-lg text-gray-600">Memuat data...</p></div>
+            <main id="dashboard-content" class="hidden">
+                 <!-- Filter Lanjutan -->
+                 <section class="bg-white p-4 rounded-xl shadow-md mb-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div><label for="dashboard-start-date" class="block text-sm font-medium text-gray-700">Tanggal Mulai</label><input type="date" id="dashboard-start-date" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm"></div>
+                        <div><label for="dashboard-end-date" class="block text-sm font-medium text-gray-700">Tanggal Selesai</label><input type="date" id="dashboard-end-date" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm"></div>
+                        <div><label for="sales-filter" class="block text-sm font-medium text-gray-700">Nama Sales</label><select id="sales-filter" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm"><option value="">Semua Sales</option></select></div>
+                        <div><label for="category-filter" class="block text-sm font-medium text-gray-700">Kategori Event</label><select id="category-filter" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm"><option value="">Semua Kategori</option></select></div>
+                        <div class="lg:col-span-4 flex justify-end gap-2">
+                            <button id="filter-dashboard-btn" class="bg-blue-600 text-white font-bold py-2 px-4 rounded-md hover:bg-blue-700">Filter</button>
+                            <button id="reset-dashboard-btn" class="bg-gray-200 text-gray-700 font-bold py-2 px-4 rounded-md hover:bg-gray-300">Reset</button>
+                        </div>
+                    </div>
+                </section>
+                
+                <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                    <div class="bg-white p-6 rounded-xl shadow-md flex items-center space-x-4"><div class="bg-blue-100 p-3 rounded-full"><svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v.01"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M12 6h.01M12 2a10 10 0 110 20 10 10 0 010-20z"></path></svg></div><div><p class="text-sm text-gray-500">Total Pendapatan (Filter)</p><p id="total-revenue" class="text-2xl font-bold">Rp 0</p></div></div>
+                    <div class="bg-white p-6 rounded-xl shadow-md flex items-center space-x-4"><div class="bg-green-100 p-3 rounded-full"><svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path></svg></div><div><p class="text-sm text-gray-500">Total DP (Filter)</p><p id="total-dp" class="text-2xl font-bold">Rp 0</p></div></div>
+                    <div class="bg-white p-6 rounded-xl shadow-md flex items-center space-x-4"><div class="bg-yellow-100 p-3 rounded-full"><svg class="w-8 h-8 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg></div><div><p class="text-sm text-gray-500">Event Aktif (Filter)</p><p id="active-events" class="text-2xl font-bold">0</p></div></div>
+                    <div class="bg-white p-6 rounded-xl shadow-md flex items-center space-x-4"><div class="bg-purple-100 p-3 rounded-full"><svg class="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.653-.28-1.25-1.44-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.653.28-1.25 1.44-1.857M12 12a3 3 0 100-6 3 3 0 000 6z"></path></svg></div><div><p class="text-sm text-gray-500">Total Tamu (Filter)</p><p id="total-pax" class="text-2xl font-bold">0</p></div></div>
+                </section>
+                
+                <section class="grid grid-cols-1 lg:grid-cols-5 gap-6 mb-6">
+                    <div class="lg:col-span-3 bg-white p-6 rounded-xl shadow-md"><h3 class="font-bold mb-4">Pendapatan per Sales (Filter)</h3><canvas id="salesRevenueChart"></canvas></div>
+                    <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-md"><h3 class="font-bold mb-4">Distribusi Venue (Filter)</h3><canvas id="venueDistributionChart"></canvas></div>
+                </section>
+                <section class="grid grid-cols-1 lg:grid-cols-5 gap-6 mb-6">
+                    <div class="lg:col-span-3 bg-white p-6 rounded-xl shadow-md"><h3 class="font-bold mb-4">Pendapatan per Kategori Event (Filter)</h3><canvas id="categoryRevenueChart"></canvas></div>
+                    <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-md"><h3 class="font-bold mb-4">Sales Leaderboard (Filter)</h3><div class="overflow-x-auto"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Peringkat</th><th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Sales</th><th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pendapatan</th></tr></thead><tbody id="sales-leaderboard-body" class="bg-white divide-y divide-gray-200"></tbody></table></div></div>
+                </section>
+
+                <section class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                    <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-md">
+                        <h3 class="font-bold mb-4">Tren Pendapatan 12 Bulan Terakhir</h3>
+                        <div style="height: 250px;"><canvas id="monthlyTrendChart"></canvas></div>
+                    </div>
+                    <div class="space-y-6">
+                        <div class="bg-white p-6 rounded-xl shadow-md">
+                            <p class="text-sm text-gray-500 mb-2">Perbandingan Bulan ke Bulan (MoM)</p>
+                            <div id="mom-comparison" class="flex items-center text-2xl font-bold"></div>
+                        </div>
+                        <div class="bg-white p-6 rounded-xl shadow-md">
+                            <p class="text-sm text-gray-500 mb-2">Perbandingan Tahun ke Tahun (YoY)</p>
+                            <div id="yoy-comparison" class="flex items-center text-2xl font-bold"></div>
+                        </div>
+                    </div>
+                </section>
+            </main>
+        </div>
+
+        <!-- Konten Tab Cek Ketersediaan -->
+        <div id="availability-tab-content" class="hidden">
+            <section class="bg-white p-6 rounded-xl shadow-md">
+                <div class="flex justify-between items-center mb-4">
+                    <button id="prev-month-btn" class="p-2 rounded-full hover:bg-gray-200"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg></button>
+                    <h3 id="calendar-header" class="text-xl font-bold text-center">Memuat...</h3>
+                    <button id="next-month-btn" class="p-2 rounded-full hover:bg-gray-200"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg></button>
+                </div>
+                <div id="availability-loader-calendar" class="flex justify-center items-center h-64"><div class="loader"></div></div>
+                <div id="calendar-container" class="hidden grid grid-cols-1 md:grid-cols-2 gap-8"></div>
+            </section>
         </div>
     </div>
 
-    <!-- Memanggil file JavaScript eksternal di akhir body untuk performa lebih baik -->
-    <script src="app.js"></script>
+    <!-- Modal untuk Detail Event -->
+    <div id="event-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-4">
+                <h3 id="modal-title" class="text-xl font-bold">Detail Event</h3>
+                <button id="modal-close-btn" class="p-1 rounded-full hover:bg-gray-200">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <div id="modal-body" class="space-y-4"></div>
+        </div>
+    </div>
+    
+    <!-- Modal untuk Tambah Pembayaran -->
+    <div id="payment-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h3 class="text-xl font-bold mb-4">Tambah Pembayaran</h3>
+            <form id="payment-form">
+                <div class="space-y-4">
+                    <input type="hidden" id="payment-client-name">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">No. Invoice</label>
+                        <input type="text" id="payment-no-inv" class="mt-1 block w-full bg-gray-100 rounded-md border-gray-300 shadow-sm sm:text-sm" readonly>
+                    </div>
+                    <div>
+                        <label for="payment-amount" class="block text-sm font-medium text-gray-700">Jumlah Pembayaran</label>
+                        <input type="number" id="payment-amount" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="payment-date" class="block text-sm font-medium text-gray-700">Tanggal Pembayaran</label>
+                        <input type="date" id="payment-date" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="payment-proof" class="block text-sm font-medium text-gray-700">Bukti (Gambar)</label>
+                        <input type="file" id="payment-proof" accept="image/*" required class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                    </div>
+                </div>
+                <div class="mt-6 flex justify-end gap-3">
+                    <button type="button" id="payment-cancel-btn" class="bg-gray-200 text-gray-700 font-bold py-2 px-4 rounded-md hover:bg-gray-300">Batal</button>
+                    <button type="submit" id="payment-submit-btn" class="bg-blue-600 text-white font-bold py-2 px-4 rounded-md hover:bg-blue-700">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal untuk Tambah Add-ons -->
+    <div id="addons-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h3 class="text-xl font-bold mb-4">Tambah Add-ons Item</h3>
+            <form id="addons-form">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">No. Invoice</label>
+                        <input type="text" id="addons-no-inv" class="mt-1 block w-full bg-gray-100 rounded-md border-gray-300 shadow-sm sm:text-sm" readonly>
+                    </div>
+                    <div>
+                        <label for="addons-item" class="block text-sm font-medium text-gray-700">Nama Item</label>
+                        <input type="text" id="addons-item" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="addons-pax" class="block text-sm font-medium text-gray-700">Jumlah PAX</label>
+                        <input type="number" id="addons-pax" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="addons-harga" class="block text-sm font-medium text-gray-700">Harga/Pax</label>
+                        <input type="number" id="addons-harga" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm">
+                    </div>
+                </div>
+                <div class="mt-6 flex justify-end gap-3">
+                    <button type="button" id="addons-cancel-btn" class="bg-gray-200 text-gray-700 font-bold py-2 px-4 rounded-md hover:bg-gray-300">Batal</button>
+                    <button type="submit" id="addons-submit-btn" class="bg-blue-600 text-white font-bold py-2 px-4 rounded-md hover:bg-blue-700">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Modal untuk Notifikasi Status -->
+    <div id="status-modal" class="modal-overlay hidden">
+        <div class="modal-content text-center">
+            <div id="status-modal-icon" class="mx-auto mb-4"></div>
+            <h3 id="status-modal-title" class="text-xl font-bold mb-2"></h3>
+            <p id="status-modal-message" class="text-gray-600 mb-6"></p>
+            <button id="status-modal-close-btn" class="bg-blue-600 text-white font-bold py-2 px-4 rounded-md w-full">Tutup</button>
+        </div>
+    </div>
+
+
+    <script>
+        // --- IMPORTANT: PASTE YOUR GOOGLE APPS SCRIPT WEB APP URL HERE ---
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyq4BqBfAq45RMA0HEh3f6IyDvL9vgaFpYIr0v175KgDhT5YcapWafYlPiceIsND68Okw/exec'; 
+        // --------------------------------------------------------------------
+
+        const charts = {};
+        let isDashboardDataLoaded = false;
+        let isCalendarDataLoaded = false;
+        let calendarBookings = {};
+        let currentCalendarDate = new Date();
+        const today = new Date();
+        const today_year = today.getFullYear();
+        const today_month = today.getMonth();
+        const today_day = today.getDate();
+
+        function formatRupiah(n) { return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n); }
+        function formatNumber(n) { return new Intl.NumberFormat('id-ID').format(n); }
+        function renderChart(id, type, labels, data, options) {
+            const ctx = document.getElementById(id).getContext('2d');
+            if (charts[id]) charts[id].destroy();
+            charts[id] = new Chart(ctx, { type, data: { labels, datasets: data }, options });
+        }
+
+        function switchTab(tabName) {
+            document.getElementById('dashboard-tab-content').classList.toggle('hidden', tabName !== 'dashboard');
+            document.getElementById('availability-tab-content').classList.toggle('hidden', tabName !== 'availability');
+            document.getElementById('tab-dashboard').classList.toggle('active', tabName === 'dashboard');
+            document.getElementById('tab-availability').classList.toggle('active', tabName === 'availability');
+            if (tabName === 'availability' && !isCalendarDataLoaded) fetchCalendarData();
+        }
+
+        // --- NEW: Function to fetch data from the Web App API ---
+        function fetchDashboardData() {
+            document.getElementById('loader-container').style.display = 'flex';
+            document.getElementById('dashboard-content').classList.add('hidden');
+            
+            const filters = {
+                startDate: document.getElementById('dashboard-start-date').value,
+                endDate: document.getElementById('dashboard-end-date').value,
+                sales: document.getElementById('sales-filter').value,
+                category: document.getElementById('category-filter').value
+            };
+
+            // Build query parameters for the GET request
+            const params = new URLSearchParams({
+                action: 'getDashboardData',
+                ...filters
+            });
+
+            fetch(`${SCRIPT_URL}?${params.toString()}`)
+                .then(response => response.json())
+                .then(data => {
+                    if(data.error) throw new Error(data.error);
+                    updateDashboardUI(data);
+                })
+                .catch(onFailure);
+        }
+
+        function updateDashboardUI(data) {
+            document.getElementById('loader-container').style.display = 'none';
+            document.getElementById('dashboard-content').classList.remove('hidden');
+            
+            if (!isDashboardDataLoaded) {
+                populateDropdown('sales-filter', data.filterOptions.sales);
+                populateDropdown('category-filter', data.filterOptions.categories);
+                isDashboardDataLoaded = true;
+            }
+
+            document.getElementById('total-revenue').textContent = formatRupiah(data.kpis.totalRevenue);
+            document.getElementById('total-dp').textContent = formatRupiah(data.kpis.totalDp);
+            document.getElementById('active-events').textContent = formatNumber(data.kpis.activeEvents);
+            document.getElementById('total-pax').textContent = formatNumber(data.kpis.totalPax);
+            updateComparisonCard('mom-comparison', data.performanceComparison.mom);
+            updateComparisonCard('yoy-comparison', data.performanceComparison.yoy);
+            
+            renderChart('monthlyTrendChart', 'line', data.monthlyTrend.labels, [{ label: 'Pendapatan', data: data.monthlyTrend.data, borderColor: 'rgb(75, 192, 192)', tension: 0.1, fill: false }], { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { callback: v => formatRupiah(v) } } } });
+            renderChart('salesRevenueChart', 'bar', data.salesPerformance.labels, [{ label: 'Total Pendapatan', data: data.salesPerformance.revenueData, backgroundColor: 'rgba(59, 130, 246, 0.6)' }], { responsive: true, scales: { y: { beginAtZero: true, ticks: { callback: v => formatRupiah(v) } } } });
+            renderChart('categoryRevenueChart', 'bar', data.categoryPerformance.labels, [{ label: 'Total Pendapatan', data: data.categoryPerformance.revenueData, backgroundColor: 'rgba(239, 68, 68, 0.6)' }], { indexAxis: 'y', responsive: true, scales: { x: { beginAtZero: true, ticks: { callback: v => formatRupiah(v) } } } });
+            renderChart('venueDistributionChart', 'doughnut', data.venueDistribution.labels, [{ label: 'Jumlah Booking', data: data.venueDistribution.counts, backgroundColor: ['rgba(22, 163, 74, 0.7)', 'rgba(234, 179, 8, 0.7)'], hoverOffset: 4 }], { responsive: true });
+            
+            const lbBody = document.getElementById('sales-leaderboard-body');
+            lbBody.innerHTML = '';
+            data.salesLeaderboard.forEach((s, i) => { lbBody.innerHTML += `<tr class="hover:bg-gray-50"><td class="px-4 py-2 text-sm font-medium">${i + 1}</td><td class="px-4 py-2 text-sm">${s.name}</td><td class="px-4 py-2 text-sm">${formatRupiah(s.revenue)}</td></tr>`; });
+        }
+        
+        function populateDropdown(elementId, options) {
+            const select = document.getElementById(elementId);
+            const firstOption = select.options[0];
+            select.innerHTML = '';
+            select.appendChild(firstOption);
+            options.sort().forEach(option => {
+                const opt = document.createElement('option');
+                opt.value = option;
+                opt.innerHTML = option;
+                select.appendChild(opt);
+            });
+        }
+
+        function updateComparisonCard(elementId, value) {
+            const container = document.getElementById(elementId);
+            const isPositive = value >= 0;
+            const colorClass = isPositive ? 'text-green-600' : 'text-red-600';
+            const arrowSvg = isPositive ? `<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path></svg>` : `<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>`;
+            container.innerHTML = `<span class="${colorClass}">${value.toFixed(1)}%</span><span class="ml-2 ${colorClass}">${arrowSvg}</span>`;
+        }
+        
+        // --- NEW: Function to fetch calendar data ---
+        function fetchCalendarData() {
+            document.getElementById('availability-loader-calendar').style.display = 'flex';
+            document.getElementById('calendar-container').classList.add('hidden');
+            
+            fetch(`${SCRIPT_URL}?action=getCalendarData`)
+                .then(response => response.json())
+                .then(bookings => {
+                    if(bookings.error) throw new Error(bookings.error);
+                    calendarBookings = bookings;
+                    isCalendarDataLoaded = true;
+                    renderCalendars();
+                    document.getElementById('availability-loader-calendar').style.display = 'none';
+                    document.getElementById('calendar-container').classList.remove('hidden');
+                })
+                .catch(onFailure);
+        }
+
+        function renderCalendars() {
+            const container = document.getElementById('calendar-container');
+            container.innerHTML = '';
+            const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+            let tempDate = new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth(), 1);
+            const firstMonthName = monthNames[tempDate.getMonth()];
+            tempDate.setMonth(tempDate.getMonth() + 3);
+            const lastMonthName = monthNames[tempDate.getMonth()];
+            document.getElementById('calendar-header').textContent = `${firstMonthName} - ${lastMonthName} ${tempDate.getFullYear()}`;
+            for (let i = 0; i < 4; i++) {
+                const calDate = new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth() + i, 1);
+                const month = calDate.getMonth();
+                const year = calDate.getFullYear();
+                const firstDay = (new Date(year, month, 1).getDay() + 6) % 7; 
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
+                let calendarHTML = `<div class="p-4 border rounded-lg bg-white">`;
+                calendarHTML += `<h4 class="text-lg font-semibold text-center mb-2">${monthNames[month]} ${year}</h4>`;
+                calendarHTML += `<div class="calendar-grid text-sm text-center font-medium text-gray-500 mb-1"><div>Sen</div><div>Sel</div><div>Rab</div><div>Kam</div><div>Jum</div><div>Sab</div><div>Min</div></div>`;
+                calendarHTML += `<div class="calendar-grid">`;
+                for (let j = 0; j < firstDay; j++) { calendarHTML += `<div></div>`; }
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                    const dayBookings = calendarBookings[dateKey];
+                    let cellClass = 'border-t border-r h-20 p-1 flex flex-col';
+                    let clickHandler = '';
+                    let summaryHTML = '';
+                    const isToday = (year === today_year && month === today_month && day === today_day);
+
+                    if (dayBookings) {
+                        cellClass += ' bg-red-100 hover:bg-red-200 cursor-pointer';
+                        clickHandler = `onclick="showEventDetailsModal('${dateKey}')"`;
+                        
+                        const hallCount = dayBookings.filter(b => b.venue === 'Hall Area').length;
+                        const rooftopCount = dayBookings.filter(b => b.venue === 'Rooftop Garden').length;
+                        
+                        let summaries = [];
+                        if (hallCount > 0) summaries.push(`<span class="font-semibold">H:${hallCount}</span>`);
+                        if (rooftopCount > 0) summaries.push(`<span class="font-semibold text-blue-700">R:${rooftopCount}</span>`);
+                        summaryHTML = `<div class="text-xs mt-1 flex justify-center gap-1">${summaries.join(', ')}</div>`;
+                    }
+
+                    if (isToday) {
+                        cellClass = cellClass.replace('bg-red-100', '');
+                        cellClass += ' bg-green-200';
+                    }
+
+                    calendarHTML += `<div class="${cellClass}" ${clickHandler}>
+                                        <span class="font-bold ${isToday ? 'text-green-900' : 'text-gray-900'}">${day}</span>
+                                        ${summaryHTML}
+                                        ${isToday ? '<span class="text-xs text-green-800 mt-auto font-semibold">Hari Ini</span>' : ''}
+                                     </div>`;
+                }
+                calendarHTML += `</div></div>`;
+                container.innerHTML += calendarHTML;
+            }
+        }
+        
+        function showEventDetailsModal(dateKey) {
+            const bookings = calendarBookings[dateKey];
+            if (!bookings) return;
+            const modal = document.getElementById('event-modal');
+            const modalTitle = document.getElementById('modal-title');
+            const modalBody = document.getElementById('modal-body');
+            const eventDate = new Date(dateKey + 'T00:00:00');
+            modalTitle.textContent = `Detail Event - ${eventDate.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}`;
+            modalBody.innerHTML = '';
+            bookings.forEach(b => {
+                let statusPembayaranHTML;
+                const statusValue = b.statusPembayaran;
+                const numericValue = parseFloat(String(statusValue).replace(/[^0-9.-]+/g,""));
+
+                if (typeof statusValue === 'string' && statusValue.toLowerCase().trim() === 'lunas') {
+                    statusPembayaranHTML = `<span class="font-semibold text-green-600">Lunas</span>`;
+                } else if (!isNaN(numericValue) && numericValue > 0) {
+                    statusPembayaranHTML = `<span class="font-semibold text-yellow-600">${formatRupiah(numericValue)}</span>`;
+                } else if (!isNaN(numericValue) && numericValue <= 0) {
+                    statusPembayaranHTML = `<span class="font-semibold text-green-600">Lunas</span>`;
+                } else {
+                    statusPembayaranHTML = `<span class="font-semibold text-gray-700">${statusValue || 'N/A'}</span>`;
+                }
+
+                modalBody.innerHTML += `
+                    <div class="border-t pt-4">
+                        <p><strong>No. Invoice:</strong> ${b.noInv || 'N/A'}</p>
+                        <p><strong>Klien:</strong> ${b.client}</p><p><strong>Venue:</strong> ${b.venue}</p><p><strong>Kategori:</strong> ${b.kategoriEvent}</p>
+                        <p><strong>Waktu:</strong> ${b.waktu}</p><p><strong>Sales:</strong> ${b.sales}</p><p><strong>Pax:</strong> ${formatNumber(b.pax)}</p>
+                        <p><strong>Status Pembayaran:</strong> ${statusPembayaranHTML}</p>
+                        <div class="mt-2 flex gap-2">
+                           <button onclick="openAddonsModal('${b.noInv}')" class="flex-1 bg-blue-500 text-white font-bold py-2 px-4 rounded-md hover:bg-blue-600">Tambah Add-ons</button>
+                           <button onclick="openPaymentModal('${b.noInv}', \`${b.client}\`)" class="flex-1 bg-green-500 text-white font-bold py-2 px-4 rounded-md hover:bg-green-600">Tambah Pembayaran</button>
+                        </div>
+                    </div>`;
+            });
+            modal.classList.remove('hidden');
+        }
+
+        function openPaymentModal(noInv, clientName) {
+            document.getElementById('event-modal').classList.add('hidden');
+            document.getElementById('payment-modal').classList.remove('hidden');
+            document.getElementById('payment-form').reset();
+            document.getElementById('payment-no-inv').value = noInv;
+            document.getElementById('payment-client-name').value = clientName;
+        }
+
+        function openAddonsModal(noInv) {
+            document.getElementById('event-modal').classList.add('hidden');
+            document.getElementById('addons-modal').classList.remove('hidden');
+            document.getElementById('addons-form').reset();
+            document.getElementById('addons-no-inv').value = noInv;
+        }
+
+        // --- NEW: Function to handle form submission with fetch (POST) ---
+        function handlePaymentSubmit(event) {
+            event.preventDefault();
+            const submitBtn = document.getElementById('payment-submit-btn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Menyimpan...';
+
+            const fileInput = document.getElementById('payment-proof');
+            const file = fileInput.files[0];
+            if (!file) {
+                onFailure({message: "Bukti pembayaran harus diunggah."});
+                return;
+            }
+            const reader = new FileReader();
+
+            reader.onloadend = function() {
+                const fileData = reader.result.split(',')[1];
+                const payload = {
+                    action: 'processPayment',
+                    formData: {
+                        noInv: document.getElementById('payment-no-inv').value,
+                        clientName: document.getElementById('payment-client-name').value,
+                        paymentAmount: document.getElementById('payment-amount').value,
+                        paymentDate: document.getElementById('payment-date').value,
+                        fileData: fileData,
+                        fileName: file.name,
+                        mimeType: file.type
+                    }
+                };
+                
+                fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    body: JSON.stringify(payload),
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' } // Required for Apps Script
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        onFormSuccess(data);
+                    } else {
+                        throw new Error(data.message || 'Unknown server error');
+                    }
+                })
+                .catch(onFailure);
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        // --- NEW: Function to handle form submission with fetch (POST) ---
+        function handleAddonsSubmit(event) {
+            event.preventDefault();
+            const submitBtn = document.getElementById('addons-submit-btn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Menyimpan...';
+
+            const payload = {
+                action: 'addAddonsItem',
+                formData: {
+                    noInv: document.getElementById('addons-no-inv').value,
+                    item: document.getElementById('addons-item').value,
+                    pax: document.getElementById('addons-pax').value,
+                    harga: document.getElementById('addons-harga').value
+                }
+            };
+            
+            fetch(SCRIPT_URL, {
+                method: 'POST',
+                body: JSON.stringify(payload),
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    onFormSuccess(data);
+                } else {
+                    throw new Error(data.message || 'Unknown server error');
+                }
+            })
+            .catch(onFailure);
+        }
+
+        function onFormSuccess(response) {
+            document.getElementById('payment-modal').classList.add('hidden');
+            document.getElementById('addons-modal').classList.add('hidden');
+            showStatusModal('Sukses', response.message, true);
+            
+            const paymentBtn = document.getElementById('payment-submit-btn');
+            paymentBtn.disabled = false;
+            paymentBtn.textContent = 'Simpan';
+
+            const addonsBtn = document.getElementById('addons-submit-btn');
+            addonsBtn.disabled = false;
+            addonsBtn.textContent = 'Simpan';
+
+            fetchDashboardData();
+            fetchCalendarData();
+        }
+        
+        function showStatusModal(title, message, isSuccess) {
+            const modal = document.getElementById('status-modal');
+            const iconContainer = document.getElementById('status-modal-icon');
+            const titleEl = document.getElementById('status-modal-title');
+            const messageEl = document.getElementById('status-modal-message');
+
+            titleEl.textContent = title;
+            messageEl.textContent = message;
+
+            if (isSuccess) {
+                iconContainer.innerHTML = `<svg class="w-16 h-16 text-green-500 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
+            } else {
+                iconContainer.innerHTML = `<svg class="w-16 h-16 text-red-500 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
+            }
+            modal.classList.remove('hidden');
+        }
+
+        function onFailure(error) {
+            console.error(error);
+            showStatusModal('Gagal', `Terjadi kesalahan: ${error.message}`, false);
+            
+            document.querySelectorAll('button[type="submit"]').forEach(btn => {
+                btn.disabled = false;
+                btn.textContent = 'Simpan';
+            });
+
+            document.getElementById('loader-container').style.display = 'none';
+            document.getElementById('availability-loader-calendar').style.display = 'none';
+        }
+
+        // Event Listeners
+        document.getElementById('filter-dashboard-btn').addEventListener('click', fetchDashboardData);
+        document.getElementById('reset-dashboard-btn').addEventListener('click', () => {
+            document.getElementById('dashboard-start-date').value = '';
+            document.getElementById('dashboard-end-date').value = '';
+            document.getElementById('sales-filter').value = '';
+            document.getElementById('category-filter').value = '';
+            fetchDashboardData();
+        });
+        document.getElementById('prev-month-btn').addEventListener('click', () => {
+            currentCalendarDate.setMonth(currentCalendarDate.getMonth() - 4);
+            renderCalendars();
+        });
+        document.getElementById('next-month-btn').addEventListener('click', () => {
+            currentCalendarDate.setMonth(currentCalendarDate.getMonth() + 4);
+            renderCalendars();
+        });
+        document.getElementById('modal-close-btn').addEventListener('click', () => document.getElementById('event-modal').classList.add('hidden'));
+        document.getElementById('event-modal').addEventListener('click', (e) => {
+            if (e.target.id === 'event-modal') document.getElementById('event-modal').classList.add('hidden');
+        });
+        document.getElementById('payment-cancel-btn').addEventListener('click', () => document.getElementById('payment-modal').classList.add('hidden'));
+        document.getElementById('payment-modal').addEventListener('click', (e) => {
+            if (e.target.id === 'payment-modal') document.getElementById('payment-modal').classList.add('hidden');
+        });
+        document.getElementById('addons-cancel-btn').addEventListener('click', () => document.getElementById('addons-modal').classList.add('hidden'));
+        document.getElementById('addons-modal').addEventListener('click', (e) => {
+            if (e.target.id === 'addons-modal') document.getElementById('addons-modal').classList.add('hidden');
+        });
+        document.getElementById('payment-form').addEventListener('submit', handlePaymentSubmit);
+        document.getElementById('addons-form').addEventListener('submit', handleAddonsSubmit);
+        document.getElementById('status-modal-close-btn').addEventListener('click', () => document.getElementById('status-modal').classList.add('hidden'));
+
+        window.onload = function() {
+            if (SCRIPT_URL === 'PASTE_YOUR_DEPLOYED_SCRIPT_URL_HERE') {
+                showStatusModal('Konfigurasi Diperlukan', 'Harap masukkan URL Web App dari Google Apps Script Anda di dalam file index.html.', false);
+                document.getElementById('loader-container').style.display = 'none';
+            } else {
+                fetchDashboardData();
+            }
+        };
+    </script>
 </body>
 </html>
