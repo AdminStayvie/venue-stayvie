@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" class="">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,20 +7,54 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
-        .loader { border: 8px solid #e5e7eb; border-top: 8px solid #3b82f6; border-radius: 50%; width: 60px; height: 60px; animation: spin 1s linear infinite; }
+        /* Light theme variables */
+        :root {
+            --bg-color: #f3f4f6;
+            --text-color: #1f2937;
+            --card-bg: #ffffff;
+            --header-text: #11182c;
+            --muted-text: #4b5563;
+            --border-color: #e5e7eb;
+            --input-bg: #ffffff;
+            --chart-grid-color: 'rgba(0, 0, 0, 0.1)';
+            --chart-ticks-color: '#6b7280';
+            --chart-font-color: '#374151';
+        }
+
+        /* Dark theme variables */
+        .dark {
+            --bg-color: #11182b;
+            --text-color: #d1d5db;
+            --card-bg: #1f2937;
+            --header-text: #f9fafb;
+            --muted-text: #9ca3af;
+            --border-color: #374151;
+            --input-bg: #374151;
+            --chart-grid-color: 'rgba(255, 255, 255, 0.1)';
+            --chart-ticks-color: '#9ca3af';
+            --chart-font-color: '#d1d5db';
+        }
+        
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .loader { border: 8px solid var(--border-color); border-top: 8px solid #3b82f6; border-radius: 50%; width: 60px; height: 60px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .tab-button.active { border-bottom-color: #3b82f6; color: #3b82f6; font-weight: 600; }
         .calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
         
         .modal-overlay {
             position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background-color: rgba(0, 0, 0, 0.5);
+            background-color: rgba(0, 0, 0, 0.7);
             display: flex; align-items: center; justify-content: center;
             z-index: 50;
         }
         .modal-content {
-            background-color: white;
+            background-color: var(--card-bg);
             padding: 2rem;
             border-radius: 0.75rem;
             max-width: 90%;
@@ -35,68 +69,76 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        // Script untuk menerapkan tema gelap/terang sesegera mungkin untuk menghindari FOUC (Flash of Unstyled Content)
+        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+    </script>
 </head>
-<body class="bg-gray-100 text-gray-800">
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
 
     <div class="container mx-auto p-4 md:p-6">
         <header class="mb-6">
-            <h1 class="text-3xl font-bold text-gray-900">Dashboard Monitoring Reservasi Venue</h1>
-            <p class="text-gray-600">Analisis kinerja dan ketersediaan venue secara real-time.</p>
+            <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Dashboard Monitoring Reservasi Venue</h1>
+            <p class="text-gray-600 dark:text-gray-400">Analisis kinerja dan ketersediaan venue secara real-time.</p>
         </header>
 
-        <div class="border-b border-gray-200 mb-6">
+        <div class="border-b border-gray-200 dark:border-gray-700 mb-6">
             <nav class="-mb-px flex space-x-6" aria-label="Tabs">
-                <button id="tab-dashboard" onclick="switchTab('dashboard')" class="tab-button active whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">Dashboard Utama</button>
-                <button id="tab-availability" onclick="switchTab('availability')" class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">Cek Ketersediaan Venue</button>
+                <button id="tab-dashboard" onclick="switchTab('dashboard')" class="tab-button active whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">Dashboard Utama</button>
+                <button id="tab-availability" onclick="switchTab('availability')" class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">Cek Ketersediaan Venue</button>
             </nav>
         </div>
 
         <!-- Konten Tab Dashboard -->
         <div id="dashboard-tab-content">
-            <div id="loader-container" class="flex justify-center items-center h-64"><div class="loader"></div><p class="ml-4 text-lg text-gray-600">Memuat data...</p></div>
+            <div id="loader-container" class="flex justify-center items-center h-64"><div class="loader"></div><p class="ml-4 text-lg text-gray-600 dark:text-gray-400">Memuat data...</p></div>
             <main id="dashboard-content" class="hidden">
                  <!-- Filter Lanjutan -->
-                 <section class="bg-white p-4 rounded-xl shadow-md mb-6">
+                 <section class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-md mb-6">
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <div><label for="dashboard-start-date" class="block text-sm font-medium text-gray-700">Tanggal Mulai</label><input type="date" id="dashboard-start-date" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm"></div>
-                        <div><label for="dashboard-end-date" class="block text-sm font-medium text-gray-700">Tanggal Selesai</label><input type="date" id="dashboard-end-date" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm"></div>
-                        <div><label for="sales-filter" class="block text-sm font-medium text-gray-700">Nama Sales</label><select id="sales-filter" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm"><option value="">Semua Sales</option></select></div>
-                        <div><label for="category-filter" class="block text-sm font-medium text-gray-700">Kategori Event</label><select id="category-filter" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm"><option value="">Semua Kategori</option></select></div>
+                        <div><label for="dashboard-start-date" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Tanggal Mulai</label><input type="date" id="dashboard-start-date" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm sm:text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white"></div>
+                        <div><label for="dashboard-end-date" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Tanggal Selesai</label><input type="date" id="dashboard-end-date" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm sm:text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white"></div>
+                        <div><label for="sales-filter" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Nama Sales</label><select id="sales-filter" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm sm:text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white"><option value="">Semua Sales</option></select></div>
+                        <div><label for="category-filter" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Kategori Event</label><select id="category-filter" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm sm:text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white"><option value="">Semua Kategori</option></select></div>
                         <div class="lg:col-span-4 flex justify-end gap-2">
                             <button id="filter-dashboard-btn" class="bg-blue-600 text-white font-bold py-2 px-4 rounded-md hover:bg-blue-700">Filter</button>
-                            <button id="reset-dashboard-btn" class="bg-gray-200 text-gray-700 font-bold py-2 px-4 rounded-md hover:bg-gray-300">Reset</button>
+                            <button id="reset-dashboard-btn" class="bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 font-bold py-2 px-4 rounded-md hover:bg-gray-300 dark:hover:bg-gray-500">Reset</button>
                         </div>
                     </div>
                 </section>
                 
                 <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-                    <div class="bg-white p-6 rounded-xl shadow-md flex items-center space-x-4"><div class="bg-blue-100 p-3 rounded-full"><svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v.01"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M12 6h.01M12 2a10 10 0 110 20 10 10 0 010-20z"></path></svg></div><div><p class="text-sm text-gray-500">Total Pendapatan (Filter)</p><p id="total-revenue" class="text-2xl font-bold">Rp 0</p></div></div>
-                    <div class="bg-white p-6 rounded-xl shadow-md flex items-center space-x-4"><div class="bg-green-100 p-3 rounded-full"><svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path></svg></div><div><p class="text-sm text-gray-500">Total DP (Filter)</p><p id="total-dp" class="text-2xl font-bold">Rp 0</p></div></div>
-                    <div class="bg-white p-6 rounded-xl shadow-md flex items-center space-x-4"><div class="bg-yellow-100 p-3 rounded-full"><svg class="w-8 h-8 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg></div><div><p class="text-sm text-gray-500">Event Aktif (Filter)</p><p id="active-events" class="text-2xl font-bold">0</p></div></div>
-                    <div class="bg-white p-6 rounded-xl shadow-md flex items-center space-x-4"><div class="bg-purple-100 p-3 rounded-full"><svg class="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.653-.28-1.25-1.44-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.653.28-1.25 1.44-1.857M12 12a3 3 0 100-6 3 3 0 000 6z"></path></svg></div><div><p class="text-sm text-gray-500">Total Tamu (Filter)</p><p id="total-pax" class="text-2xl font-bold">0</p></div></div>
+                    <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md flex items-center space-x-4"><div class="bg-blue-100 dark:bg-blue-900/50 p-3 rounded-full"><svg class="w-8 h-8 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v.01"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M12 6h.01M12 2a10 10 0 110 20 10 10 0 010-20z"></path></svg></div><div><p class="text-sm text-gray-500 dark:text-gray-400">Total Pendapatan (Filter)</p><p id="total-revenue" class="text-2xl font-bold text-gray-900 dark:text-white">Rp 0</p></div></div>
+                    <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md flex items-center space-x-4"><div class="bg-green-100 dark:bg-green-900/50 p-3 rounded-full"><svg class="w-8 h-8 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path></svg></div><div><p class="text-sm text-gray-500 dark:text-gray-400">Total DP (Filter)</p><p id="total-dp" class="text-2xl font-bold text-gray-900 dark:text-white">Rp 0</p></div></div>
+                    <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md flex items-center space-x-4"><div class="bg-yellow-100 dark:bg-yellow-900/50 p-3 rounded-full"><svg class="w-8 h-8 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg></div><div><p class="text-sm text-gray-500 dark:text-gray-400">Event Aktif (Filter)</p><p id="active-events" class="text-2xl font-bold text-gray-900 dark:text-white">0</p></div></div>
+                    <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md flex items-center space-x-4"><div class="bg-purple-100 dark:bg-purple-900/50 p-3 rounded-full"><svg class="w-8 h-8 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.653-.28-1.25-1.44-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.653.28-1.25 1.44-1.857M12 12a3 3 0 100-6 3 3 0 000 6z"></path></svg></div><div><p class="text-sm text-gray-500 dark:text-gray-400">Total Tamu (Filter)</p><p id="total-pax" class="text-2xl font-bold text-gray-900 dark:text-white">0</p></div></div>
                 </section>
                 
                 <section class="grid grid-cols-1 lg:grid-cols-5 gap-6 mb-6">
-                    <div class="lg:col-span-3 bg-white p-6 rounded-xl shadow-md"><h3 class="font-bold mb-4">Pendapatan per Sales (Filter)</h3><canvas id="salesRevenueChart"></canvas></div>
-                    <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-md"><h3 class="font-bold mb-4">Distribusi Venue (Filter)</h3><canvas id="venueDistributionChart"></canvas></div>
+                    <div class="lg:col-span-3 bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md"><h3 class="font-bold mb-4 text-gray-900 dark:text-white">Pendapatan per Sales (Filter)</h3><div class="relative h-72"><canvas id="salesRevenueChart"></canvas></div></div>
+                    <div class="lg:col-span-2 bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md"><h3 class="font-bold mb-4 text-gray-900 dark:text-white">Distribusi Venue (Filter)</h3><div class="relative h-72"><canvas id="venueDistributionChart"></canvas></div></div>
                 </section>
                 <section class="grid grid-cols-1 lg:grid-cols-5 gap-6 mb-6">
-                    <div class="lg:col-span-3 bg-white p-6 rounded-xl shadow-md"><h3 class="font-bold mb-4">Pendapatan per Kategori Event (Filter)</h3><canvas id="categoryRevenueChart"></canvas></div>
-                    <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-md"><h3 class="font-bold mb-4">Sales Leaderboard (Filter)</h3><div class="overflow-x-auto"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Peringkat</th><th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Sales</th><th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pendapatan</th></tr></thead><tbody id="sales-leaderboard-body" class="bg-white divide-y divide-gray-200"></tbody></table></div></div>
+                    <div class="lg:col-span-3 bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md"><h3 class="font-bold mb-4 text-gray-900 dark:text-white">Pendapatan per Kategori Event (Filter)</h3><div class="relative h-72"><canvas id="categoryRevenueChart"></canvas></div></div>
+                    <div class="lg:col-span-2 bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md"><h3 class="font-bold mb-4 text-gray-900 dark:text-white">Sales Leaderboard (Filter)</h3><div class="overflow-x-auto"><table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700"><thead class="bg-gray-50 dark:bg-gray-700"><tr><th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Peringkat</th><th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Nama Sales</th><th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Pendapatan</th></tr></thead><tbody id="sales-leaderboard-body" class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700"></tbody></table></div></div>
                 </section>
 
                 <section class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-                    <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-md">
-                        <h3 class="font-bold mb-4">Tren Pendapatan 12 Bulan Terakhir</h3>
-                        <div style="height: 250px;"><canvas id="monthlyTrendChart"></canvas></div>
+                    <div class="lg:col-span-2 bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md">
+                        <h3 class="font-bold mb-4 text-gray-900 dark:text-white">Tren Pendapatan 12 Bulan Terakhir</h3>
+                        <div class="relative h-72"><canvas id="monthlyTrendChart"></canvas></div>
                     </div>
                     <div class="space-y-6">
-                        <div class="bg-white p-6 rounded-xl shadow-md">
-                            <p class="text-sm text-gray-500 mb-2">Perbandingan Bulan ke Bulan (MoM)</p>
+                        <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md">
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mb-2">Perbandingan Bulan ke Bulan (MoM)</p>
                             <div id="mom-comparison" class="flex items-center text-2xl font-bold"></div>
                         </div>
-                        <div class="bg-white p-6 rounded-xl shadow-md">
-                            <p class="text-sm text-gray-500 mb-2">Perbandingan Tahun ke Tahun (YoY)</p>
+                        <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md">
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mb-2">Perbandingan Tahun ke Tahun (YoY)</p>
                             <div id="yoy-comparison" class="flex items-center text-2xl font-bold"></div>
                         </div>
                     </div>
@@ -106,11 +148,11 @@
 
         <!-- Konten Tab Cek Ketersediaan -->
         <div id="availability-tab-content" class="hidden">
-            <section class="bg-white p-6 rounded-xl shadow-md">
+            <section class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md">
                 <div class="flex justify-between items-center mb-4">
-                    <button id="prev-month-btn" class="p-2 rounded-full hover:bg-gray-200"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg></button>
-                    <h3 id="calendar-header" class="text-xl font-bold text-center">Memuat...</h3>
-                    <button id="next-month-btn" class="p-2 rounded-full hover:bg-gray-200"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg></button>
+                    <button id="prev-month-btn" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg></button>
+                    <h3 id="calendar-header" class="text-xl font-bold text-center text-gray-900 dark:text-white">Memuat...</h3>
+                    <button id="next-month-btn" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg></button>
                 </div>
                 <div id="availability-loader-calendar" class="flex justify-center items-center h-64"><div class="loader"></div></div>
                 <div id="calendar-container" class="hidden grid grid-cols-1 md:grid-cols-2 gap-8"></div>
@@ -123,7 +165,7 @@
         <div class="modal-content">
             <div class="flex justify-between items-center mb-4">
                 <h3 id="modal-title" class="text-xl font-bold">Detail Event</h3>
-                <button id="modal-close-btn" class="p-1 rounded-full hover:bg-gray-200">
+                <button id="modal-close-btn" class="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
             </div>
@@ -139,24 +181,24 @@
                 <div class="space-y-4">
                     <input type="hidden" id="payment-client-name">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">No. Invoice</label>
-                        <input type="text" id="payment-no-inv" class="mt-1 block w-full bg-gray-100 rounded-md border-gray-300 shadow-sm sm:text-sm" readonly>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">No. Invoice</label>
+                        <input type="text" id="payment-no-inv" class="mt-1 block w-full bg-gray-100 dark:bg-gray-600 rounded-md border-gray-300 dark:border-gray-500 shadow-sm sm:text-sm" readonly>
                     </div>
                     <div>
-                        <label for="payment-amount" class="block text-sm font-medium text-gray-700">Jumlah Pembayaran</label>
-                        <input type="number" id="payment-amount" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm">
+                        <label for="payment-amount" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Jumlah Pembayaran</label>
+                        <input type="number" id="payment-amount" required class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm sm:text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
                     </div>
                     <div>
-                        <label for="payment-date" class="block text-sm font-medium text-gray-700">Tanggal Pembayaran</label>
-                        <input type="date" id="payment-date" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm">
+                        <label for="payment-date" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Tanggal Pembayaran</label>
+                        <input type="date" id="payment-date" required class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm sm:text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
                     </div>
                     <div>
-                        <label for="payment-proof" class="block text-sm font-medium text-gray-700">Bukti (Gambar)</label>
-                        <input type="file" id="payment-proof" accept="image/*" required class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                        <label for="payment-proof" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Bukti (Gambar)</label>
+                        <input type="file" id="payment-proof" accept="image/*" required class="mt-1 block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 dark:file:bg-blue-900/50 file:text-blue-700 dark:file:text-blue-300 hover:file:bg-blue-100 dark:hover:file:bg-blue-900">
                     </div>
                 </div>
                 <div class="mt-6 flex justify-end gap-3">
-                    <button type="button" id="payment-cancel-btn" class="bg-gray-200 text-gray-700 font-bold py-2 px-4 rounded-md hover:bg-gray-300">Batal</button>
+                    <button type="button" id="payment-cancel-btn" class="bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 font-bold py-2 px-4 rounded-md hover:bg-gray-300 dark:hover:bg-gray-500">Batal</button>
                     <button type="submit" id="payment-submit-btn" class="bg-blue-600 text-white font-bold py-2 px-4 rounded-md hover:bg-blue-700">Simpan</button>
                 </div>
             </form>
@@ -170,24 +212,24 @@
             <form id="addons-form">
                 <div class="space-y-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">No. Invoice</label>
-                        <input type="text" id="addons-no-inv" class="mt-1 block w-full bg-gray-100 rounded-md border-gray-300 shadow-sm sm:text-sm" readonly>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">No. Invoice</label>
+                        <input type="text" id="addons-no-inv" class="mt-1 block w-full bg-gray-100 dark:bg-gray-600 rounded-md border-gray-300 dark:border-gray-500 shadow-sm sm:text-sm" readonly>
                     </div>
                     <div>
-                        <label for="addons-item" class="block text-sm font-medium text-gray-700">Nama Item</label>
-                        <input type="text" id="addons-item" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm">
+                        <label for="addons-item" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Nama Item</label>
+                        <input type="text" id="addons-item" required class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm sm:text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
                     </div>
                     <div>
-                        <label for="addons-pax" class="block text-sm font-medium text-gray-700">Jumlah PAX</label>
-                        <input type="number" id="addons-pax" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm">
+                        <label for="addons-pax" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Jumlah PAX</label>
+                        <input type="number" id="addons-pax" required class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm sm:text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
                     </div>
                     <div>
-                        <label for="addons-harga" class="block text-sm font-medium text-gray-700">Harga/Pax</label>
-                        <input type="number" id="addons-harga" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm">
+                        <label for="addons-harga" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Harga/Pax</label>
+                        <input type="number" id="addons-harga" required class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm sm:text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
                     </div>
                 </div>
                 <div class="mt-6 flex justify-end gap-3">
-                    <button type="button" id="addons-cancel-btn" class="bg-gray-200 text-gray-700 font-bold py-2 px-4 rounded-md hover:bg-gray-300">Batal</button>
+                    <button type="button" id="addons-cancel-btn" class="bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 font-bold py-2 px-4 rounded-md hover:bg-gray-300 dark:hover:bg-gray-500">Batal</button>
                     <button type="submit" id="addons-submit-btn" class="bg-blue-600 text-white font-bold py-2 px-4 rounded-md hover:bg-blue-700">Simpan</button>
                 </div>
             </form>
@@ -199,7 +241,7 @@
         <div class="modal-content text-center">
             <div id="status-modal-icon" class="mx-auto mb-4"></div>
             <h3 id="status-modal-title" class="text-xl font-bold mb-2"></h3>
-            <p id="status-modal-message" class="text-gray-600 mb-6"></p>
+            <p id="status-modal-message" class="text-gray-600 dark:text-gray-300 mb-6"></p>
             <button id="status-modal-close-btn" class="bg-blue-600 text-white font-bold py-2 px-4 rounded-md w-full">Tutup</button>
         </div>
     </div>
@@ -220,23 +262,75 @@
         const today_month = today.getMonth();
         const today_day = today.getDate();
 
+        // --- THEME HELPER FUNCTIONS ---
+        function isDarkMode() {
+            return document.documentElement.classList.contains('dark');
+        }
+
+        function getThemeColors() {
+            const styles = getComputedStyle(document.documentElement);
+            return {
+                gridColor: styles.getPropertyValue('--chart-grid-color').trim(),
+                ticksColor: styles.getPropertyValue('--chart-ticks-color').trim(),
+                fontColor: styles.getPropertyValue('--chart-font-color').trim()
+            };
+        }
+
         function formatRupiah(n) { return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n); }
         function formatNumber(n) { return new Intl.NumberFormat('id-ID').format(n); }
+        
         function renderChart(id, type, labels, data, options) {
             const ctx = document.getElementById(id).getContext('2d');
             if (charts[id]) charts[id].destroy();
-            charts[id] = new Chart(ctx, { type, data: { labels, datasets: data }, options });
+
+            const themeColors = getThemeColors();
+            const defaultOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: themeColors.fontColor
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        ticks: { color: themeColors.ticksColor },
+                        grid: { color: themeColors.gridColor }
+                    },
+                    y: {
+                        ticks: { color: themeColors.ticksColor },
+                        grid: { color: themeColors.gridColor }
+                    }
+                }
+            };
+
+            // Gabungkan options default dengan custom options
+            const finalOptions = { ...defaultOptions, ...options };
+
+            // Sesuaikan skala untuk tipe chart tertentu
+            if (type === 'line' || type === 'bar') {
+                if (options && options.indexAxis === 'y') {
+                    finalOptions.scales.x.ticks.callback = v => formatRupiah(v);
+                    finalOptions.scales.x.beginAtZero = true;
+                } else {
+                    finalOptions.scales.y.ticks.callback = v => formatRupiah(v);
+                    finalOptions.scales.y.beginAtZero = true;
+                }
+            }
+
+            charts[id] = new Chart(ctx, { type, data: { labels, datasets: data }, options: finalOptions });
         }
 
         function switchTab(tabName) {
             document.getElementById('dashboard-tab-content').classList.toggle('hidden', tabName !== 'dashboard');
             document.getElementById('availability-tab-content').classList.toggle('hidden', tabName !== 'availability');
             document.getElementById('tab-dashboard').classList.toggle('active', tabName === 'dashboard');
-            document.getElementById('tab-availability').classList.toggle('active', tabName === 'availability');
+            document.getElementById('tab-availability').classList.toggle('active', tabName !== 'dashboard');
             if (tabName === 'availability' && !isCalendarDataLoaded) fetchCalendarData();
         }
 
-        // --- NEW: Function to fetch data from the Web App API ---
         function fetchDashboardData() {
             document.getElementById('loader-container').style.display = 'flex';
             document.getElementById('dashboard-content').classList.add('hidden');
@@ -248,11 +342,7 @@
                 category: document.getElementById('category-filter').value
             };
 
-            // Build query parameters for the GET request
-            const params = new URLSearchParams({
-                action: 'getDashboardData',
-                ...filters
-            });
+            const params = new URLSearchParams({ action: 'getDashboardData', ...filters });
 
             fetch(`${SCRIPT_URL}?${params.toString()}`)
                 .then(response => response.json())
@@ -280,14 +370,14 @@
             updateComparisonCard('mom-comparison', data.performanceComparison.mom);
             updateComparisonCard('yoy-comparison', data.performanceComparison.yoy);
             
-            renderChart('monthlyTrendChart', 'line', data.monthlyTrend.labels, [{ label: 'Pendapatan', data: data.monthlyTrend.data, borderColor: 'rgb(75, 192, 192)', tension: 0.1, fill: false }], { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { callback: v => formatRupiah(v) } } } });
-            renderChart('salesRevenueChart', 'bar', data.salesPerformance.labels, [{ label: 'Total Pendapatan', data: data.salesPerformance.revenueData, backgroundColor: 'rgba(59, 130, 246, 0.6)' }], { responsive: true, scales: { y: { beginAtZero: true, ticks: { callback: v => formatRupiah(v) } } } });
-            renderChart('categoryRevenueChart', 'bar', data.categoryPerformance.labels, [{ label: 'Total Pendapatan', data: data.categoryPerformance.revenueData, backgroundColor: 'rgba(239, 68, 68, 0.6)' }], { indexAxis: 'y', responsive: true, scales: { x: { beginAtZero: true, ticks: { callback: v => formatRupiah(v) } } } });
-            renderChart('venueDistributionChart', 'doughnut', data.venueDistribution.labels, [{ label: 'Jumlah Booking', data: data.venueDistribution.counts, backgroundColor: ['rgba(22, 163, 74, 0.7)', 'rgba(234, 179, 8, 0.7)'], hoverOffset: 4 }], { responsive: true });
+            renderChart('monthlyTrendChart', 'line', data.monthlyTrend.labels, [{ label: 'Pendapatan', data: data.monthlyTrend.data, borderColor: 'rgb(59, 130, 246)', tension: 0.1, fill: false }], {});
+            renderChart('salesRevenueChart', 'bar', data.salesPerformance.labels, [{ label: 'Total Pendapatan', data: data.salesPerformance.revenueData, backgroundColor: 'rgba(59, 130, 246, 0.6)' }], {});
+            renderChart('categoryRevenueChart', 'bar', data.categoryPerformance.labels, [{ label: 'Total Pendapatan', data: data.categoryPerformance.revenueData, backgroundColor: 'rgba(239, 68, 68, 0.6)' }], { indexAxis: 'y' });
+            renderChart('venueDistributionChart', 'doughnut', data.venueDistribution.labels, [{ label: 'Jumlah Booking', data: data.venueDistribution.counts, backgroundColor: ['rgba(16, 185, 129, 0.7)', 'rgba(234, 179, 8, 0.7)'], hoverOffset: 4 }], { scales: { x: { display: false }, y: { display: false } } });
             
             const lbBody = document.getElementById('sales-leaderboard-body');
             lbBody.innerHTML = '';
-            data.salesLeaderboard.forEach((s, i) => { lbBody.innerHTML += `<tr class="hover:bg-gray-50"><td class="px-4 py-2 text-sm font-medium">${i + 1}</td><td class="px-4 py-2 text-sm">${s.name}</td><td class="px-4 py-2 text-sm">${formatRupiah(s.revenue)}</td></tr>`; });
+            data.salesLeaderboard.forEach((s, i) => { lbBody.innerHTML += `<tr class="hover:bg-gray-50 dark:hover:bg-gray-700"><td class="px-4 py-2 text-sm font-medium">${i + 1}</td><td class="px-4 py-2 text-sm">${s.name}</td><td class="px-4 py-2 text-sm">${formatRupiah(s.revenue)}</td></tr>`; });
         }
         
         function populateDropdown(elementId, options) {
@@ -306,12 +396,11 @@
         function updateComparisonCard(elementId, value) {
             const container = document.getElementById(elementId);
             const isPositive = value >= 0;
-            const colorClass = isPositive ? 'text-green-600' : 'text-red-600';
+            const colorClass = isPositive ? 'text-green-500 dark:text-green-400' : 'text-red-500 dark:text-red-400';
             const arrowSvg = isPositive ? `<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path></svg>` : `<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>`;
             container.innerHTML = `<span class="${colorClass}">${value.toFixed(1)}%</span><span class="ml-2 ${colorClass}">${arrowSvg}</span>`;
         }
         
-        // --- NEW: Function to fetch calendar data ---
         function fetchCalendarData() {
             document.getElementById('availability-loader-calendar').style.display = 'flex';
             document.getElementById('calendar-container').classList.add('hidden');
@@ -344,41 +433,41 @@
                 const year = calDate.getFullYear();
                 const firstDay = (new Date(year, month, 1).getDay() + 6) % 7; 
                 const daysInMonth = new Date(year, month + 1, 0).getDate();
-                let calendarHTML = `<div class="p-4 border rounded-lg bg-white">`;
-                calendarHTML += `<h4 class="text-lg font-semibold text-center mb-2">${monthNames[month]} ${year}</h4>`;
-                calendarHTML += `<div class="calendar-grid text-sm text-center font-medium text-gray-500 mb-1"><div>Sen</div><div>Sel</div><div>Rab</div><div>Kam</div><div>Jum</div><div>Sab</div><div>Min</div></div>`;
+                let calendarHTML = `<div class="p-4 border dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800">`;
+                calendarHTML += `<h4 class="text-lg font-semibold text-center mb-2 text-gray-900 dark:text-white">${monthNames[month]} ${year}</h4>`;
+                calendarHTML += `<div class="calendar-grid text-sm text-center font-medium text-gray-500 dark:text-gray-400 mb-1"><div>Sen</div><div>Sel</div><div>Rab</div><div>Kam</div><div>Jum</div><div>Sab</div><div>Min</div></div>`;
                 calendarHTML += `<div class="calendar-grid">`;
                 for (let j = 0; j < firstDay; j++) { calendarHTML += `<div></div>`; }
                 for (let day = 1; day <= daysInMonth; day++) {
                     const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                     const dayBookings = calendarBookings[dateKey];
-                    let cellClass = 'border-t border-r h-20 p-1 flex flex-col';
+                    let cellClass = 'border-t border-r dark:border-gray-700 h-20 p-1 flex flex-col';
                     let clickHandler = '';
                     let summaryHTML = '';
                     const isToday = (year === today_year && month === today_month && day === today_day);
 
                     if (dayBookings) {
-                        cellClass += ' bg-red-100 hover:bg-red-200 cursor-pointer';
+                        cellClass += ' bg-red-100 dark:bg-red-900/40 hover:bg-red-200 dark:hover:bg-red-900/60 cursor-pointer';
                         clickHandler = `onclick="showEventDetailsModal('${dateKey}')"`;
                         
                         const hallCount = dayBookings.filter(b => b.venue === 'Hall Area').length;
                         const rooftopCount = dayBookings.filter(b => b.venue === 'Rooftop Garden').length;
                         
                         let summaries = [];
-                        if (hallCount > 0) summaries.push(`<span class="font-semibold">H:${hallCount}</span>`);
-                        if (rooftopCount > 0) summaries.push(`<span class="font-semibold text-blue-700">R:${rooftopCount}</span>`);
+                        if (hallCount > 0) summaries.push(`<span class="font-semibold text-red-800 dark:text-red-300">H:${hallCount}</span>`);
+                        if (rooftopCount > 0) summaries.push(`<span class="font-semibold text-blue-700 dark:text-blue-400">R:${rooftopCount}</span>`);
                         summaryHTML = `<div class="text-xs mt-1 flex justify-center gap-1">${summaries.join(', ')}</div>`;
                     }
 
                     if (isToday) {
                         cellClass = cellClass.replace('bg-red-100', '');
-                        cellClass += ' bg-green-200';
+                        cellClass += ' bg-green-200 dark:bg-green-800/50';
                     }
 
                     calendarHTML += `<div class="${cellClass}" ${clickHandler}>
-                                        <span class="font-bold ${isToday ? 'text-green-900' : 'text-gray-900'}">${day}</span>
+                                        <span class="font-bold ${isToday ? 'text-green-900 dark:text-green-200' : 'text-gray-900 dark:text-gray-100'}">${day}</span>
                                         ${summaryHTML}
-                                        ${isToday ? '<span class="text-xs text-green-800 mt-auto font-semibold">Hari Ini</span>' : ''}
+                                        ${isToday ? '<span class="text-xs text-green-800 dark:text-green-300 mt-auto font-semibold">Hari Ini</span>' : ''}
                                      </div>`;
                 }
                 calendarHTML += `</div></div>`;
@@ -401,17 +490,17 @@
                 const numericValue = parseFloat(String(statusValue).replace(/[^0-9.-]+/g,""));
 
                 if (typeof statusValue === 'string' && statusValue.toLowerCase().trim() === 'lunas') {
-                    statusPembayaranHTML = `<span class="font-semibold text-green-600">Lunas</span>`;
+                    statusPembayaranHTML = `<span class="font-semibold text-green-600 dark:text-green-400">Lunas</span>`;
                 } else if (!isNaN(numericValue) && numericValue > 0) {
-                    statusPembayaranHTML = `<span class="font-semibold text-yellow-600">${formatRupiah(numericValue)}</span>`;
+                    statusPembayaranHTML = `<span class="font-semibold text-yellow-600 dark:text-yellow-400">${formatRupiah(numericValue)}</span>`;
                 } else if (!isNaN(numericValue) && numericValue <= 0) {
-                    statusPembayaranHTML = `<span class="font-semibold text-green-600">Lunas</span>`;
+                    statusPembayaranHTML = `<span class="font-semibold text-green-600 dark:text-green-400">Lunas</span>`;
                 } else {
-                    statusPembayaranHTML = `<span class="font-semibold text-gray-700">${statusValue || 'N/A'}</span>`;
+                    statusPembayaranHTML = `<span class="font-semibold text-gray-700 dark:text-gray-300">${statusValue || 'N/A'}</span>`;
                 }
 
                 modalBody.innerHTML += `
-                    <div class="border-t pt-4">
+                    <div class="border-t dark:border-gray-600 pt-4">
                         <p><strong>No. Invoice:</strong> ${b.noInv || 'N/A'}</p>
                         <p><strong>Klien:</strong> ${b.client}</p><p><strong>Venue:</strong> ${b.venue}</p><p><strong>Kategori:</strong> ${b.kategoriEvent}</p>
                         <p><strong>Waktu:</strong> ${b.waktu}</p><p><strong>Sales:</strong> ${b.sales}</p><p><strong>Pax:</strong> ${formatNumber(b.pax)}</p>
@@ -440,7 +529,6 @@
             document.getElementById('addons-no-inv').value = noInv;
         }
 
-        // --- NEW: Function to handle form submission with fetch (POST) ---
         function handlePaymentSubmit(event) {
             event.preventDefault();
             const submitBtn = document.getElementById('payment-submit-btn');
@@ -473,22 +561,18 @@
                 fetch(SCRIPT_URL, {
                     method: 'POST',
                     body: JSON.stringify(payload),
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' } // Required for Apps Script
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' }
                 })
                 .then(response => response.json())
                 .then(data => {
-                    if (data.success) {
-                        onFormSuccess(data);
-                    } else {
-                        throw new Error(data.message || 'Unknown server error');
-                    }
+                    if (data.success) { onFormSuccess(data); } 
+                    else { throw new Error(data.message || 'Unknown server error'); }
                 })
                 .catch(onFailure);
             };
             reader.readAsDataURL(file);
         }
         
-        // --- NEW: Function to handle form submission with fetch (POST) ---
         function handleAddonsSubmit(event) {
             event.preventDefault();
             const submitBtn = document.getElementById('addons-submit-btn');
@@ -512,11 +596,8 @@
             })
             .then(response => response.json())
             .then(data => {
-                if (data.success) {
-                    onFormSuccess(data);
-                } else {
-                    throw new Error(data.message || 'Unknown server error');
-                }
+                if (data.success) { onFormSuccess(data); } 
+                else { throw new Error(data.message || 'Unknown server error'); }
             })
             .catch(onFailure);
         }
@@ -526,13 +607,10 @@
             document.getElementById('addons-modal').classList.add('hidden');
             showStatusModal('Sukses', response.message, true);
             
-            const paymentBtn = document.getElementById('payment-submit-btn');
-            paymentBtn.disabled = false;
-            paymentBtn.textContent = 'Simpan';
-
-            const addonsBtn = document.getElementById('addons-submit-btn');
-            addonsBtn.disabled = false;
-            addonsBtn.textContent = 'Simpan';
+            document.getElementById('payment-submit-btn').disabled = false;
+            document.getElementById('payment-submit-btn').textContent = 'Simpan';
+            document.getElementById('addons-submit-btn').disabled = false;
+            document.getElementById('addons-submit-btn').textContent = 'Simpan';
 
             fetchDashboardData();
             fetchCalendarData();
@@ -586,27 +664,33 @@
             renderCalendars();
         });
         document.getElementById('modal-close-btn').addEventListener('click', () => document.getElementById('event-modal').classList.add('hidden'));
-        document.getElementById('event-modal').addEventListener('click', (e) => {
-            if (e.target.id === 'event-modal') document.getElementById('event-modal').classList.add('hidden');
-        });
+        document.getElementById('event-modal').addEventListener('click', (e) => { if (e.target.id === 'event-modal') document.getElementById('event-modal').classList.add('hidden'); });
         document.getElementById('payment-cancel-btn').addEventListener('click', () => document.getElementById('payment-modal').classList.add('hidden'));
-        document.getElementById('payment-modal').addEventListener('click', (e) => {
-            if (e.target.id === 'payment-modal') document.getElementById('payment-modal').classList.add('hidden');
-        });
+        document.getElementById('payment-modal').addEventListener('click', (e) => { if (e.target.id === 'payment-modal') document.getElementById('payment-modal').classList.add('hidden'); });
         document.getElementById('addons-cancel-btn').addEventListener('click', () => document.getElementById('addons-modal').classList.add('hidden'));
-        document.getElementById('addons-modal').addEventListener('click', (e) => {
-            if (e.target.id === 'addons-modal') document.getElementById('addons-modal').classList.add('hidden');
-        });
+        document.getElementById('addons-modal').addEventListener('click', (e) => { if (e.target.id === 'addons-modal') document.getElementById('addons-modal').classList.add('hidden'); });
         document.getElementById('payment-form').addEventListener('submit', handlePaymentSubmit);
         document.getElementById('addons-form').addEventListener('submit', handleAddonsSubmit);
         document.getElementById('status-modal-close-btn').addEventListener('click', () => document.getElementById('status-modal').classList.add('hidden'));
 
+        // Listener untuk perubahan tema sistem
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
+            if (event.matches) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+            // Re-render semua chart dengan tema baru
+            fetchDashboardData(); 
+        });
+
         window.onload = function() {
-            if (SCRIPT_URL === 'PASTE_YOUR_DEPLOYED_SCRIPT_URL_HERE') {
+            if (SCRIPT_URL === 'PASTE_YOUR_DEPLOYED_SCRIPT_URL_HERE' || SCRIPT_URL === '') {
                 showStatusModal('Konfigurasi Diperlukan', 'Harap masukkan URL Web App dari Google Apps Script Anda di dalam file index.html.', false);
                 document.getElementById('loader-container').style.display = 'none';
             } else {
                 fetchDashboardData();
+                switchTab('dashboard'); // Pastikan tab dashboard aktif saat load
             }
         };
     </script>
